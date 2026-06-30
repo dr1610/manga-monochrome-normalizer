@@ -1,0 +1,63 @@
+﻿# Manga Monochrome Normalizer
+
+AlwaysVisible extension for Stable Diffusion WebUI reForge / reForge Neo.
+
+This extension applies post-generation monochrome tone normalization for manga-style images. It does not change the diffusion process, prompts, ControlNet, ADetailer, or other generation extensions.
+
+## Features
+
+- Works in txt2img and img2img as an AlwaysVisible script.
+- Keeps the original image by default with `Original + corrected`.
+- Appends corrected images to the result gallery.
+- Saves corrected files with the `_normalized` suffix.
+- Stabilizes white, black, and mid-gray balance across generated images.
+- Includes 2x2 grid tone balancing for four-panel style outputs.
+
+## Installation
+
+Clone or copy this repository into your WebUI `extensions` folder:
+
+```text
+stable-diffusion-webui/extensions/manga-monochrome-normalizer
+```
+
+For Stability Matrix reForge packages, the target is typically:
+
+```text
+Data/Packages/Stable Diffusion WebUI reForge/extensions/manga-monochrome-normalizer
+```
+
+Restart WebUI after installing or updating.
+
+## Recommended Defaults
+
+The extension starts with practical defaults for monochrome manga cleanup:
+
+- `Output Mode`: `High contrast grayscale`
+- `White Boost`: `0.60`
+- `Black Solidify`: `0.52`
+- `Midtone Compression`: `0.45`
+- `Gamma`: `1.00`
+- `Tone Preserve`: ON
+- `Preserve Mid Gray`: `0.52`
+- `Preserve details`: ON
+- `Background White Priority`: `0.58`
+- `Solid Black Priority`: `0.52`
+- `Tone Unify`: ON
+- `2x2 Grid Tone Balance`: ON
+- `Tone Unify Strength`: `0.62`
+
+## Save Behavior
+
+Default: `Original + corrected`
+
+- `Original + corrected`: keep the original output and append the corrected image to the result gallery.
+- `Corrected only`: save and show only corrected images.
+- `Save corrected copy`: save corrected copies, but keep the gallery unchanged.
+- `Replace output image`: replace the gallery output with corrected images.
+
+## Notes
+
+`Hard black and white` is intentionally not the default. It is useful for strong black-and-white checks, but it can damage gray clothing, skin shadows, and background tone separation.
+
+For paint-app color range selection workflows, prefer `High contrast grayscale` and avoid excessive midtone compression.
