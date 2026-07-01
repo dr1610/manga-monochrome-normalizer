@@ -15,6 +15,7 @@ MoireGuard is included as an optional lightweight guard for images that will be 
 - Stabilizes white, black, and mid-gray balance across generated images.
 - Includes 2x2 grid tone balancing for four-panel style outputs.
 - Includes `MoireGuard`, lightweight smoothing to reduce moire risk when images are scaled or rotated later.
+- MoireGuard has adjustable preset, smoothing strength, line-art protection, and target gray range.
 
 ## Installation
 
@@ -49,7 +50,10 @@ The extension starts with practical defaults for monochrome manga cleanup:
 - `Tone Unify`: ON
 - `2x2 Grid Tone Balance`: ON
 - `Tone Unify Strength`: `0.62`
-- `MoireGuard`: `Light`
+- `MoireGuard Preset`: `Light`
+- `MoireGuard Strength`: `0.35`
+- `Edge Protection`: `0.72`
+- `Tone Range`: `Mid gray + light gray`
 
 ## Save Behavior
 
@@ -78,7 +82,14 @@ It is a lightweight anti-moire guard for images that will be scaled or rotated a
 
 - `Off`: no MoireGuard smoothing.
 - `Light`: recommended default for CLIP STUDIO placement and small scale changes.
+- `Balanced`: a middle setting for images that will be resized more than a little.
 - `Strong`: stronger smoothing for risky water, sky, fabric, or gray background areas. It may make tones slightly softer.
+
+Additional controls:
+
+- `MoireGuard Strength`: higher values smooth more strongly, but can soften flat gray texture.
+- `Edge Protection`: higher values protect line art and black detail more aggressively.
+- `Tone Range`: chooses which gray values are eligible for smoothing. `Mid gray only` is safest, `Wide gray` is strongest.
 
 This is not a full demoireing model. It is designed to reduce moire risk without adding heavy dependencies.
 

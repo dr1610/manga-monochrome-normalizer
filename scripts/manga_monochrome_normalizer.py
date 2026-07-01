@@ -160,24 +160,56 @@ def _apply_hard_manga_curve(gray, tone_preserve):
     return gray.point(_lut(curve))
 
 
-def _apply_resize_safe(gray, resize_safe):
+def _apply_resize_safe(
+    gray,
+    resize_safe,
+    moire_strength=0.35,
+    moire_edge_protection=0.72,
+    moire_tone_range="Mid gray + light gray",
+):
     if resize_safe == "Off":
         return gray
 
+    try:
+        moire_strength = _clamp(float(moire_strength), 0.0, 1.0)
+    except (TypeError, ValueError):
+        moire_strength = 0.35
+    try:
+        moire_edge_protection = _clamp(float(moire_edge_protection), 0.0, 1.0)
+    except (TypeError, ValueError):
+        moire_edge_protection = 0.72
+    if moire_strength <= 0:
+        return gray
+
     if resize_safe == "Strong":
-        edge_threshold = 22
-        blend_strength = 0.42
-        blur_radius = 0.55
+        base_strength = 0.48
+        base_blur = 0.62
+        base_edge_threshold = 20
+    elif resize_safe == "Balanced":
+        base_strength = 0.36
+        base_blur = 0.46
+        base_edge_threshold = 17
     else:
-        edge_threshold = 16
-        blend_strength = 0.26
-        blur_radius = 0.35
+        base_strength = 0.26
+        base_blur = 0.34
+        base_edge_threshold = 14
+
+    edge_threshold = int(_lerp(base_edge_threshold + 10, base_edge_threshold, moire_edge_protection))
+    blend_strength = _clamp(base_strength * _lerp(0.45, 1.65, moire_strength), 0.0, 0.72)
+    blur_radius = _clamp(base_blur * _lerp(0.55, 1.75, moire_strength), 0.15, 1.20)
+
+    tone_ranges = {
+        "Mid gray only": (72, 190),
+        "Mid gray + light gray": (42, 232),
+        "Wide gray": (24, 242),
+    }
+    tone_low, tone_high = tone_ranges.get(moire_tone_range, (42, 232))
 
     edges = gray.filter(ImageFilter.FIND_EDGES)
     low_edge_mask = edges.point(lambda x: 255 if x < edge_threshold else 0)
-    midtone_mask = gray.point(lambda x: 255 if 32 <= x <= 224 else 0)
+    midtone_mask = gray.point(lambda x: 255 if tone_low <= x <= tone_high else 0)
     safe_mask = ImageChops.multiply(low_edge_mask, midtone_mask)
-    safe_mask = safe_mask.filter(ImageFilter.GaussianBlur(radius=1.1))
+    safe_mask = safe_mask.filter(ImageFilter.GaussianBlur(radius=_lerp(0.8, 1.5, moire_strength)))
 
     smoothed = gray.filter(ImageFilter.MedianFilter(size=3))
     smoothed = smoothed.filter(ImageFilter.GaussianBlur(radius=blur_radius))
@@ -255,6 +287,9 @@ def normalize_monochrome(
     grid_tone_balance=True,
     tone_unify_strength=0.62,
     resize_safe="Light",
+    moire_strength=0.35,
+    moire_edge_protection=0.72,
+    moire_tone_range="Mid gray + light gray",
 ):
     source = image.convert("RGB")
     gray = ImageOps.grayscale(source)
@@ -289,7 +324,13 @@ def normalize_monochrome(
     if tone_unify and grid_tone_balance:
         corrected = _balance_grid_quadrants(corrected, tone_unify_strength)
 
-    corrected = _apply_resize_safe(corrected, resize_safe)
+    corrected = _apply_resize_safe(
+        corrected,
+        resize_safe,
+        moire_strength=moire_strength,
+        moire_edge_protection=moire_edge_protection,
+        moire_tone_range=moire_tone_range,
+    )
 
     return corrected.convert("RGB")
 
@@ -380,9 +421,9 @@ class Script(scripts.Script):
 
     def ui(self, is_img2img):
         with gr.Accordion("Manga Monochrome Normalizer", open=False):
-            enabled = gr.Checkbox(label="Enable (補正を有効化)", value=False)
+            enabled = gr.Checkbox(label="Enable (enable correction)", value=False)
             save_behavior = gr.Dropdown(
-                label="Save behavior (保存とギャラリー表示)",
+                label="Save behavior (save and gallery output)",
                 choices=[
                     SAVE_ORIGINAL_AND_CORRECTED,
                     SAVE_CORRECTED_ONLY,
@@ -392,26 +433,34 @@ class Script(scripts.Script):
                 value=SAVE_ORIGINAL_AND_CORRECTED,
             )
             mode = gr.Dropdown(
-                label="Output Mode (補正の強さと仕上げ)",
+                label="Output Mode (correction style)",
                 choices=["Soft manga", "High contrast grayscale", "Hard black and white"],
                 value="High contrast grayscale",
             )
-            white_boost = gr.Slider(label="White Boost (背景や肌の薄いグレーを白へ寄せる)", minimum=0.0, maximum=1.0, step=0.01, value=0.60)
-            black_solidify = gr.Slider(label="Black Solidify (髪や黒服を黒ベタへ寄せる)", minimum=0.0, maximum=1.0, step=0.01, value=0.52)
-            midtone_compression = gr.Slider(label="Midtone Compression (中間グレーの幅を圧縮する)", minimum=0.0, maximum=1.0, step=0.01, value=0.45)
-            gamma = gr.Slider(label="Gamma (全体の明るさカーブ)", minimum=0.5, maximum=2.0, step=0.01, value=1.0)
-            tone_preserve = gr.Checkbox(label="Tone Preserve (元の明暗関係を残す)", value=True)
-            preserve_mid_gray = gr.Slider(label="Preserve Mid Gray (服や影のグレーを残す)", minimum=0.0, maximum=1.0, step=0.01, value=0.52)
-            preserve_details = gr.Checkbox(label="Preserve details (細線や薄い影を残す)", value=True)
-            background_white_priority = gr.Slider(label="Background White Priority (背景白化を優先する)", minimum=0.0, maximum=1.0, step=0.01, value=0.58)
-            solid_black_priority = gr.Slider(label="Solid Black Priority (黒ベタ化を優先する)", minimum=0.0, maximum=1.0, step=0.01, value=0.52)
-            tone_unify = gr.Checkbox(label="Tone Unify (画像間の白黒バランスを揃える)", value=True)
-            grid_tone_balance = gr.Checkbox(label="2x2 Grid Tone Balance (4分割内の明暗差を揃える)", value=True)
-            tone_unify_strength = gr.Slider(label="Tone Unify Strength (白黒バランス統一の強さ)", minimum=0.0, maximum=1.0, step=0.01, value=0.62)
+            white_boost = gr.Slider(label="White Boost (push pale background gray toward white)", minimum=0.0, maximum=1.0, step=0.01, value=0.60)
+            black_solidify = gr.Slider(label="Black Solidify (push hair and solid fills toward black)", minimum=0.0, maximum=1.0, step=0.01, value=0.52)
+            midtone_compression = gr.Slider(label="Midtone Compression (narrow the middle-gray range)", minimum=0.0, maximum=1.0, step=0.01, value=0.45)
+            gamma = gr.Slider(label="Gamma (overall brightness curve)", minimum=0.5, maximum=2.0, step=0.01, value=1.0)
+            tone_preserve = gr.Checkbox(label="Tone Preserve (keep original light-dark relationship)", value=True)
+            preserve_mid_gray = gr.Slider(label="Preserve Mid Gray (keep clothing and shadow grays)", minimum=0.0, maximum=1.0, step=0.01, value=0.52)
+            preserve_details = gr.Checkbox(label="Preserve details (keep fine lines and pale shadows)", value=True)
+            background_white_priority = gr.Slider(label="Background White Priority (prefer cleaner white backgrounds)", minimum=0.0, maximum=1.0, step=0.01, value=0.58)
+            solid_black_priority = gr.Slider(label="Solid Black Priority (prefer stronger black fills)", minimum=0.0, maximum=1.0, step=0.01, value=0.52)
+            tone_unify = gr.Checkbox(label="Tone Unify (align white-black balance across images)", value=True)
+            grid_tone_balance = gr.Checkbox(label="2x2 Grid Tone Balance (align brightness inside 4-panel grids)", value=True)
+            tone_unify_strength = gr.Slider(label="Tone Unify Strength (white-black balance strength)", minimum=0.0, maximum=1.0, step=0.01, value=0.62)
             resize_safe = gr.Dropdown(
-                label="MoireGuard (拡縮時のモアレ/ザラつきを抑える)",
-                choices=["Off", "Light", "Strong"],
+                label="MoireGuard Preset (moire prevention preset)",
+                choices=["Off", "Light", "Balanced", "Strong"],
                 value="Light",
+            )
+            gr.Markdown("MoireGuard lightly smooths low-detail gray areas to reduce moire risk after scaling or rotation. Higher Edge Protection keeps line art safer.")
+            moire_strength = gr.Slider(label="MoireGuard Strength (smoothing amount)", minimum=0.0, maximum=1.0, step=0.01, value=0.35)
+            moire_edge_protection = gr.Slider(label="Edge Protection (protect line art)", minimum=0.0, maximum=1.0, step=0.01, value=0.72)
+            moire_tone_range = gr.Dropdown(
+                label="Tone Range (gray range to smooth)",
+                choices=["Mid gray only", "Mid gray + light gray", "Wide gray"],
+                value="Mid gray + light gray",
             )
 
         return [
@@ -431,6 +480,9 @@ class Script(scripts.Script):
             grid_tone_balance,
             tone_unify_strength,
             resize_safe,
+            moire_strength,
+            moire_edge_protection,
+            moire_tone_range,
         ]
 
     def postprocess(
@@ -453,6 +505,9 @@ class Script(scripts.Script):
         grid_tone_balance,
         tone_unify_strength,
         resize_safe,
+        moire_strength=0.35,
+        moire_edge_protection=0.72,
+        moire_tone_range="Mid gray + light gray",
     ):
         if not enabled or not getattr(processed, "images", None):
             return
@@ -483,6 +538,9 @@ class Script(scripts.Script):
                     grid_tone_balance=grid_tone_balance,
                     tone_unify_strength=tone_unify_strength,
                     resize_safe=resize_safe,
+                    moire_strength=moire_strength,
+                    moire_edge_protection=moire_edge_protection,
+                    moire_tone_range=moire_tone_range,
                 )
                 corrected_images.append(corrected)
                 corrected_infotexts.append((original_infotexts[index] or "") + "\nManga Monochrome Normalizer: corrected")
