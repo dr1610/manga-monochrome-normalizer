@@ -160,52 +160,6 @@ def _apply_hard_manga_curve(gray, tone_preserve):
     return gray.point(_lut(curve))
 
 
-def _apply_resize_safe(
-    gray,
-    resize_safe,
-    moire_strength=0.08,
-    moire_edge_protection=0.95,
-    moire_tone_range="Mid gray + light gray",
-):
-    if resize_safe == "Off":
-        return gray
-
-    try:
-        moire_strength = _clamp(float(moire_strength), 0.0, 1.0)
-    except (TypeError, ValueError):
-        moire_strength = 0.08
-    try:
-        moire_edge_protection = _clamp(float(moire_edge_protection), 0.0, 1.0)
-    except (TypeError, ValueError):
-        moire_edge_protection = 0.95
-    if moire_strength <= 0:
-        return gray
-
-    if resize_safe == "Strong":
-        base_strength = 0.12
-        base_blur = 0.30
-    elif resize_safe == "Balanced":
-        base_strength = 0.08
-        base_blur = 0.24
-    else:
-        base_strength = 0.04
-        base_blur = 0.18
-
-    tone_scales = {
-        "Mid gray only": 0.78,
-        "Mid gray + light gray": 1.0,
-        "Wide gray": 1.18,
-    }
-    tone_scale = tone_scales.get(moire_tone_range, 1.0)
-
-    protection_scale = _lerp(1.0, 0.30, moire_edge_protection)
-    blend_strength = _clamp(base_strength * tone_scale * protection_scale * _lerp(0.50, 1.15, moire_strength), 0.0, 0.08)
-    blur_radius = _clamp(base_blur * tone_scale * _lerp(0.55, 1.25, moire_strength), 0.08, 0.42)
-
-    smoothed = gray.filter(ImageFilter.GaussianBlur(radius=blur_radius))
-    return Image.blend(gray, smoothed, blend_strength)
-
-
 def _balance_grid_quadrants(image, strength):
     strength = _clamp(float(strength), 0.0, 1.0)
     if strength <= 0:
@@ -275,10 +229,6 @@ def normalize_monochrome(
     tone_unify=True,
     grid_tone_balance=True,
     tone_unify_strength=0.62,
-    resize_safe="Off",
-    moire_strength=0.08,
-    moire_edge_protection=0.95,
-    moire_tone_range="Mid gray + light gray",
 ):
     source = image.convert("RGB")
     gray = ImageOps.grayscale(source)
@@ -312,14 +262,6 @@ def normalize_monochrome(
 
     if tone_unify and grid_tone_balance:
         corrected = _balance_grid_quadrants(corrected, tone_unify_strength)
-
-    corrected = _apply_resize_safe(
-        corrected,
-        resize_safe,
-        moire_strength=moire_strength,
-        moire_edge_protection=moire_edge_protection,
-        moire_tone_range=moire_tone_range,
-    )
 
     return corrected.convert("RGB")
 
@@ -438,19 +380,6 @@ class Script(scripts.Script):
             tone_unify = gr.Checkbox(label="Tone Unify (align white-black balance across images)", value=True)
             grid_tone_balance = gr.Checkbox(label="2x2 Grid Tone Balance (align brightness inside 4-panel grids)", value=True)
             tone_unify_strength = gr.Slider(label="Tone Unify Strength (white-black balance strength)", minimum=0.0, maximum=1.0, step=0.01, value=0.62)
-            resize_safe = gr.Dropdown(
-                label="MoireGuard Preset (moire prevention preset)",
-                choices=["Off", "Light", "Balanced", "Strong"],
-                value="Off",
-            )
-            gr.Markdown("MoireGuard is OFF by default because anti-moire smoothing can reveal or amplify generated shading bands. Turn it on only for resize tests that actually show moire.")
-            moire_strength = gr.Slider(label="MoireGuard Strength (smoothing amount)", minimum=0.0, maximum=1.0, step=0.01, value=0.08)
-            moire_edge_protection = gr.Slider(label="Edge Protection (lower blend to protect lines)", minimum=0.0, maximum=1.0, step=0.01, value=0.95)
-            moire_tone_range = gr.Dropdown(
-                label="Tone Range (gray range to smooth)",
-                choices=["Mid gray only", "Mid gray + light gray", "Wide gray"],
-                value="Mid gray + light gray",
-            )
 
         return [
             enabled,
@@ -468,10 +397,6 @@ class Script(scripts.Script):
             tone_unify,
             grid_tone_balance,
             tone_unify_strength,
-            resize_safe,
-            moire_strength,
-            moire_edge_protection,
-            moire_tone_range,
         ]
 
     def postprocess(
@@ -493,10 +418,6 @@ class Script(scripts.Script):
         tone_unify,
         grid_tone_balance,
         tone_unify_strength,
-        resize_safe,
-        moire_strength=0.08,
-        moire_edge_protection=0.95,
-        moire_tone_range="Mid gray + light gray",
     ):
         if not enabled or not getattr(processed, "images", None):
             return
@@ -526,10 +447,6 @@ class Script(scripts.Script):
                     tone_unify=tone_unify,
                     grid_tone_balance=grid_tone_balance,
                     tone_unify_strength=tone_unify_strength,
-                    resize_safe=resize_safe,
-                    moire_strength=moire_strength,
-                    moire_edge_protection=moire_edge_protection,
-                    moire_tone_range=moire_tone_range,
                 )
                 corrected_images.append(corrected)
                 corrected_infotexts.append((original_infotexts[index] or "") + "\nManga Monochrome Normalizer: corrected")

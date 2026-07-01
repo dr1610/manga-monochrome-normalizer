@@ -4,8 +4,6 @@ AlwaysVisible extension for Stable Diffusion WebUI reForge / reForge Neo.
 
 Manga Monochrome Normalizer applies post-generation monochrome tone normalization for manga-style images. It does not change the diffusion process, prompts, ControlNet, ADetailer, or other generation extensions.
 
-MoireGuard is included as an optional lightweight guard for images that will be scaled or rotated later.
-
 ## Features
 
 - Works in txt2img and img2img as an AlwaysVisible script.
@@ -14,8 +12,6 @@ MoireGuard is included as an optional lightweight guard for images that will be 
 - Saves corrected files with the `_normalized` suffix.
 - Stabilizes white, black, and mid-gray balance across generated images.
 - Includes 2x2 grid tone balancing for four-panel style outputs.
-- Includes `MoireGuard`, lightweight smoothing to reduce moire risk when images are scaled or rotated later.
-- MoireGuard has adjustable preset, smoothing strength, line-art protection, and target gray range.
 
 ## Installation
 
@@ -50,10 +46,6 @@ The extension starts with practical defaults for monochrome manga cleanup:
 - `Tone Unify`: ON
 - `2x2 Grid Tone Balance`: ON
 - `Tone Unify Strength`: `0.62`
-- `MoireGuard Preset`: `Off`
-- `MoireGuard Strength`: `0.08`
-- `Edge Protection`: `0.95`
-- `Tone Range`: `Mid gray + light gray`
 
 ## Save Behavior
 
@@ -73,25 +65,6 @@ Corrected files are saved with the `_normalized` suffix.
 `2x2 Grid Tone Balance` is enabled by default. It lightly balances four-panel grid images so one panel does not become much darker or lighter than the others.
 
 If a single portrait image looks over-normalized, turn `2x2 Grid Tone Balance` off first.
-
-## MoireGuard
-
-`MoireGuard` is `Off` by default.
-
-It is a lightweight anti-moire guard for images that will be scaled or rotated after generation. Anti-moire smoothing can reveal or amplify generated shading bands, so it is disabled by default and should be enabled only when resize tests actually show moire.
-
-- `Off`: no MoireGuard smoothing.
-- `Light`: very weak full-image smoothing for small resize tests.
-- `Balanced`: a middle setting for images that clearly show moire after resizing.
-- `Strong`: stronger smoothing for risky water, sky, fabric, or gray background areas. It can soften tones and reveal generated shading bands.
-
-Additional controls:
-
-- `MoireGuard Strength`: higher values smooth more strongly, but can soften line art and gray texture.
-- `Edge Protection`: higher values reduce the smoothing blend to protect line art.
-- `Tone Range`: adjusts the overall smoothing scale. `Mid gray only` is safest, `Wide gray` is strongest.
-
-This is not a full demoireing model. It is designed to reduce moire risk without adding heavy dependencies.
 
 ## Notes
 
