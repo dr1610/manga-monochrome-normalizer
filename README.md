@@ -50,9 +50,9 @@ The extension starts with practical defaults for monochrome manga cleanup:
 - `Tone Unify`: ON
 - `2x2 Grid Tone Balance`: ON
 - `Tone Unify Strength`: `0.62`
-- `MoireGuard Preset`: `Light`
-- `MoireGuard Strength`: `0.14`
-- `Edge Protection`: `0.90`
+- `MoireGuard Preset`: `Off`
+- `MoireGuard Strength`: `0.08`
+- `Edge Protection`: `0.95`
 - `Tone Range`: `Mid gray + light gray`
 
 ## Save Behavior
@@ -76,14 +76,14 @@ If a single portrait image looks over-normalized, turn `2x2 Grid Tone Balance` o
 
 ## MoireGuard
 
-`MoireGuard` is enabled as `Light` by default.
+`MoireGuard` is `Off` by default.
 
-It is a lightweight anti-moire guard for images that will be scaled or rotated after generation. It applies a very light full-image smoothing blend instead of local masks, so it avoids drawing mask boundaries inside clothing shadows or other gray shading.
+It is a lightweight anti-moire guard for images that will be scaled or rotated after generation. Anti-moire smoothing can reveal or amplify generated shading bands, so it is disabled by default and should be enabled only when resize tests actually show moire.
 
 - `Off`: no MoireGuard smoothing.
-- `Light`: recommended default for CLIP STUDIO placement and small scale changes.
-- `Balanced`: a middle setting for images that will be resized more than a little.
-- `Strong`: stronger smoothing for risky water, sky, fabric, or gray background areas. It may make tones slightly softer.
+- `Light`: very weak full-image smoothing for small resize tests.
+- `Balanced`: a middle setting for images that clearly show moire after resizing.
+- `Strong`: stronger smoothing for risky water, sky, fabric, or gray background areas. It can soften tones and reveal generated shading bands.
 
 Additional controls:
 
