@@ -3,7 +3,7 @@ import traceback
 from datetime import datetime
 
 import gradio as gr
-from PIL import Image, ImageFilter, ImageOps
+from PIL import Image, ImageChops, ImageFilter, ImageOps
 
 from modules import scripts
 
@@ -160,6 +160,31 @@ def _apply_hard_manga_curve(gray, tone_preserve):
     return gray.point(_lut(curve))
 
 
+def _apply_resize_safe(gray, resize_safe):
+    if resize_safe == "Off":
+        return gray
+
+    if resize_safe == "Strong":
+        edge_threshold = 22
+        blend_strength = 0.42
+        blur_radius = 0.55
+    else:
+        edge_threshold = 16
+        blend_strength = 0.26
+        blur_radius = 0.35
+
+    edges = gray.filter(ImageFilter.FIND_EDGES)
+    low_edge_mask = edges.point(lambda x: 255 if x < edge_threshold else 0)
+    midtone_mask = gray.point(lambda x: 255 if 32 <= x <= 224 else 0)
+    safe_mask = ImageChops.multiply(low_edge_mask, midtone_mask)
+    safe_mask = safe_mask.filter(ImageFilter.GaussianBlur(radius=1.1))
+
+    smoothed = gray.filter(ImageFilter.MedianFilter(size=3))
+    smoothed = smoothed.filter(ImageFilter.GaussianBlur(radius=blur_radius))
+    blended = Image.blend(gray, smoothed, blend_strength)
+    return Image.composite(blended, gray, safe_mask)
+
+
 def _balance_grid_quadrants(image, strength):
     strength = _clamp(float(strength), 0.0, 1.0)
     if strength <= 0:
@@ -229,6 +254,7 @@ def normalize_monochrome(
     tone_unify=True,
     grid_tone_balance=True,
     tone_unify_strength=0.62,
+    resize_safe="Light",
 ):
     source = image.convert("RGB")
     gray = ImageOps.grayscale(source)
@@ -262,6 +288,8 @@ def normalize_monochrome(
 
     if tone_unify and grid_tone_balance:
         corrected = _balance_grid_quadrants(corrected, tone_unify_strength)
+
+    corrected = _apply_resize_safe(corrected, resize_safe)
 
     return corrected.convert("RGB")
 
@@ -380,6 +408,11 @@ class Script(scripts.Script):
             tone_unify = gr.Checkbox(label="Tone Unify (画像間の白黒バランスを揃える)", value=True)
             grid_tone_balance = gr.Checkbox(label="2x2 Grid Tone Balance (4分割内の明暗差を揃える)", value=True)
             tone_unify_strength = gr.Slider(label="Tone Unify Strength (白黒バランス統一の強さ)", minimum=0.0, maximum=1.0, step=0.01, value=0.62)
+            resize_safe = gr.Dropdown(
+                label="Resize Safe (拡縮時のモアレ/ザラつきを抑える)",
+                choices=["Off", "Light", "Strong"],
+                value="Light",
+            )
 
         return [
             enabled,
@@ -397,6 +430,7 @@ class Script(scripts.Script):
             tone_unify,
             grid_tone_balance,
             tone_unify_strength,
+            resize_safe,
         ]
 
     def postprocess(
@@ -418,6 +452,7 @@ class Script(scripts.Script):
         tone_unify,
         grid_tone_balance,
         tone_unify_strength,
+        resize_safe,
     ):
         if not enabled or not getattr(processed, "images", None):
             return
@@ -447,6 +482,7 @@ class Script(scripts.Script):
                     tone_unify=tone_unify,
                     grid_tone_balance=grid_tone_balance,
                     tone_unify_strength=tone_unify_strength,
+                    resize_safe=resize_safe,
                 )
                 corrected_images.append(corrected)
                 corrected_infotexts.append((original_infotexts[index] or "") + "\nManga Monochrome Normalizer: corrected")
