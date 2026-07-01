@@ -1,8 +1,10 @@
-# MoireGuard
+# Manga Monochrome Normalizer
 
 AlwaysVisible extension for Stable Diffusion WebUI reForge / reForge Neo.
 
-MoireGuard applies post-generation monochrome tone normalization and lightweight resize-safe smoothing for manga-style images. It does not change the diffusion process, prompts, ControlNet, ADetailer, or other generation extensions.
+Manga Monochrome Normalizer applies post-generation monochrome tone normalization for manga-style images. It does not change the diffusion process, prompts, ControlNet, ADetailer, or other generation extensions.
+
+MoireGuard is included as an optional lightweight guard for images that will be scaled or rotated later.
 
 ## Features
 
@@ -12,7 +14,7 @@ MoireGuard applies post-generation monochrome tone normalization and lightweight
 - Saves corrected files with the `_normalized` suffix.
 - Stabilizes white, black, and mid-gray balance across generated images.
 - Includes 2x2 grid tone balancing for four-panel style outputs.
-- Includes lightweight `Resize Safe` smoothing to reduce moire risk when images are scaled or rotated later.
+- Includes `MoireGuard`, lightweight smoothing to reduce moire risk when images are scaled or rotated later.
 
 ## Installation
 
@@ -21,8 +23,6 @@ Clone or copy this repository into your WebUI `extensions` folder:
 ```text
 stable-diffusion-webui/extensions/manga-monochrome-normalizer
 ```
-
-The repository folder can be left as `manga-monochrome-normalizer`; the extension appears in WebUI as `MoireGuard`.
 
 For Stability Matrix reForge packages, the target is typically:
 
@@ -49,7 +49,7 @@ The extension starts with practical defaults for monochrome manga cleanup:
 - `Tone Unify`: ON
 - `2x2 Grid Tone Balance`: ON
 - `Tone Unify Strength`: `0.62`
-- `Resize Safe`: `Light`
+- `MoireGuard`: `Light`
 
 ## Save Behavior
 
@@ -70,13 +70,13 @@ Corrected files are saved with the `_normalized` suffix.
 
 If a single portrait image looks over-normalized, turn `2x2 Grid Tone Balance` off first.
 
-## Resize Safe
+## MoireGuard
 
-`Resize Safe` is enabled as `Light` by default.
+`MoireGuard` is enabled as `Light` by default.
 
 It is a lightweight anti-moire guard for images that will be scaled or rotated after generation. It only smooths low-edge mid-gray areas, while preserving line art edges, solid blacks, and white backgrounds.
 
-- `Off`: no resize-safe smoothing.
+- `Off`: no MoireGuard smoothing.
 - `Light`: recommended default for CLIP STUDIO placement and small scale changes.
 - `Strong`: stronger smoothing for risky water, sky, fabric, or gray background areas. It may make tones slightly softer.
 

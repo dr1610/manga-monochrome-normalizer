@@ -373,13 +373,13 @@ def _set_processed_gallery(processed, gallery_images, gallery_infotexts):
 
 class Script(scripts.Script):
     def title(self):
-        return "MoireGuard"
+        return "Manga Monochrome Normalizer"
 
     def show(self, is_img2img):
         return scripts.AlwaysVisible
 
     def ui(self, is_img2img):
-        with gr.Accordion("MoireGuard", open=False):
+        with gr.Accordion("Manga Monochrome Normalizer", open=False):
             enabled = gr.Checkbox(label="Enable (補正を有効化)", value=False)
             save_behavior = gr.Dropdown(
                 label="Save behavior (保存とギャラリー表示)",
@@ -409,7 +409,7 @@ class Script(scripts.Script):
             grid_tone_balance = gr.Checkbox(label="2x2 Grid Tone Balance (4分割内の明暗差を揃える)", value=True)
             tone_unify_strength = gr.Slider(label="Tone Unify Strength (白黒バランス統一の強さ)", minimum=0.0, maximum=1.0, step=0.01, value=0.62)
             resize_safe = gr.Dropdown(
-                label="Resize Safe (拡縮時のモアレ/ザラつきを抑える)",
+                label="MoireGuard (拡縮時のモアレ/ザラつきを抑える)",
                 choices=["Off", "Light", "Strong"],
                 value="Light",
             )
@@ -485,7 +485,7 @@ class Script(scripts.Script):
                     resize_safe=resize_safe,
                 )
                 corrected_images.append(corrected)
-                corrected_infotexts.append((original_infotexts[index] or "") + "\nMoireGuard: corrected")
+                corrected_infotexts.append((original_infotexts[index] or "") + "\nManga Monochrome Normalizer: corrected")
 
             if tone_unify:
                 corrected_images = _balance_batch_images(corrected_images, tone_unify_strength)
@@ -509,6 +509,6 @@ class Script(scripts.Script):
             elif save_behavior == SAVE_CORRECTED_COPY:
                 _set_processed_gallery(processed, original_images, original_infotexts)
         except Exception:
-            print("MoireGuard postprocess failed:")
+            print("Manga Monochrome Normalizer postprocess failed:")
             print(traceback.format_exc())
             return
