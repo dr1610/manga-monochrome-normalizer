@@ -12,6 +12,7 @@ Manga Monochrome Normalizer applies post-generation monochrome tone normalizatio
 - Saves corrected files with the `_normalized` suffix.
 - Stabilizes white, black, and mid-gray balance across generated images.
 - Includes 2x2 grid tone balancing for four-panel style outputs.
+- Includes optional `MoireGuard` smoothing for resize moire checks.
 
 ## Installation
 
@@ -44,8 +45,11 @@ The extension starts with practical defaults for monochrome manga cleanup:
 - `Background White Priority`: `0.58`
 - `Solid Black Priority`: `0.52`
 - `Tone Unify`: ON
-- `2x2 Grid Tone Balance`: ON
+- `2x2 Grid Tone Balance`: OFF
 - `Tone Unify Strength`: `0.62`
+- `MoireGuard Preset`: `Off`
+- `MoireGuard Strength`: `0.08`
+- `Edge Protection`: `0.95`
 
 ## Save Behavior
 
@@ -62,9 +66,26 @@ Corrected files are saved with the `_normalized` suffix.
 
 `Tone Unify` is enabled by default. It narrows variation between generated images by matching the black, mid-gray, and white ranges.
 
-`2x2 Grid Tone Balance` is enabled by default. It lightly balances four-panel grid images so one panel does not become much darker or lighter than the others.
+`2x2 Grid Tone Balance` is disabled by default. It lightly balances real four-panel grid images so one panel does not become much darker or lighter than the others.
 
-If a single portrait image looks over-normalized, turn `2x2 Grid Tone Balance` off first.
+Keep `2x2 Grid Tone Balance` off for single illustrations. It splits the image into four areas, so using it on normal images can create square boundary artifacts.
+
+## MoireGuard
+
+`MoireGuard` is disabled by default.
+
+It is a lightweight anti-moire guard for images that will be scaled or rotated after generation. Enable it only when resize tests actually show moire. It uses a very weak full-image smoothing blend, not local masks.
+
+- `Off`: no MoireGuard smoothing.
+- `Light`: very weak full-image smoothing for small resize tests.
+- `Balanced`: a middle setting for images that clearly show moire after resizing.
+- `Strong`: stronger smoothing for risky water, sky, fabric, or gray background areas. It can soften tones.
+
+Additional controls:
+
+- `MoireGuard Strength`: higher values smooth more strongly, but can soften line art and gray texture.
+- `Edge Protection`: higher values reduce the smoothing blend to protect line art.
+- `Tone Range`: adjusts the overall smoothing scale. `Mid gray only` is safest, `Wide gray` is strongest.
 
 ## Notes
 
