@@ -51,8 +51,8 @@ The extension starts with practical defaults for monochrome manga cleanup:
 - `2x2 Grid Tone Balance`: ON
 - `Tone Unify Strength`: `0.62`
 - `MoireGuard Preset`: `Light`
-- `MoireGuard Strength`: `0.35`
-- `Edge Protection`: `0.72`
+- `MoireGuard Strength`: `0.25`
+- `Edge Protection`: `0.84`
 - `Tone Range`: `Mid gray + light gray`
 
 ## Save Behavior
@@ -78,7 +78,7 @@ If a single portrait image looks over-normalized, turn `2x2 Grid Tone Balance` o
 
 `MoireGuard` is enabled as `Light` by default.
 
-It is a lightweight anti-moire guard for images that will be scaled or rotated after generation. It only smooths low-edge mid-gray areas, while preserving line art edges, solid blacks, and white backgrounds.
+It is a lightweight anti-moire guard for images that will be scaled or rotated after generation. It softly smooths low-change gray areas, while preserving line art edges, shadow boundaries, solid blacks, and white backgrounds.
 
 - `Off`: no MoireGuard smoothing.
 - `Light`: recommended default for CLIP STUDIO placement and small scale changes.
@@ -87,8 +87,8 @@ It is a lightweight anti-moire guard for images that will be scaled or rotated a
 
 Additional controls:
 
-- `MoireGuard Strength`: higher values smooth more strongly, but can soften flat gray texture.
-- `Edge Protection`: higher values protect line art and black detail more aggressively.
+- `MoireGuard Strength`: higher values smooth more strongly, but can soften gray texture or shading boundaries.
+- `Edge Protection`: higher values protect line art, black detail, and shadow boundaries more aggressively.
 - `Tone Range`: chooses which gray values are eligible for smoothing. `Mid gray only` is safest, `Wide gray` is strongest.
 
 This is not a full demoireing model. It is designed to reduce moire risk without adding heavy dependencies.

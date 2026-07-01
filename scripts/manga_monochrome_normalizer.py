@@ -160,11 +160,56 @@ def _apply_hard_manga_curve(gray, tone_preserve):
     return gray.point(_lut(curve))
 
 
+def _soft_range_mask(gray, low, high, feather):
+    feather = max(float(feather), 1.0)
+
+    def curve(x):
+        if x <= low - feather or x >= high + feather:
+            return 0
+        if x < low:
+            return 255.0 * (x - (low - feather)) / feather
+        if x > high:
+            return 255.0 * ((high + feather) - x) / feather
+        return 255.0
+
+    return gray.point(_lut(curve))
+
+
+def _soft_edge_safe_mask(edges, protect):
+    protect = _clamp(float(protect), 0.0, 1.0)
+    low = _lerp(58.0, 20.0, protect)
+    high = low + _lerp(36.0, 18.0, protect)
+
+    def curve(x):
+        if x <= low:
+            return 255.0
+        if x >= high:
+            return 0.0
+        return 255.0 * (1.0 - ((x - low) / max(1.0, high - low)))
+
+    return edges.point(_lut(curve))
+
+
+def _low_change_mask(original, smoothed, strength):
+    diff = ImageChops.difference(original, smoothed)
+    low = _lerp(5.0, 9.0, strength)
+    high = _lerp(15.0, 24.0, strength)
+
+    def curve(x):
+        if x <= low:
+            return 255.0
+        if x >= high:
+            return 0.0
+        return 255.0 * (1.0 - ((x - low) / max(1.0, high - low)))
+
+    return diff.point(_lut(curve))
+
+
 def _apply_resize_safe(
     gray,
     resize_safe,
-    moire_strength=0.35,
-    moire_edge_protection=0.72,
+    moire_strength=0.25,
+    moire_edge_protection=0.84,
     moire_tone_range="Mid gray + light gray",
 ):
     if resize_safe == "Off":
@@ -173,30 +218,26 @@ def _apply_resize_safe(
     try:
         moire_strength = _clamp(float(moire_strength), 0.0, 1.0)
     except (TypeError, ValueError):
-        moire_strength = 0.35
+        moire_strength = 0.25
     try:
         moire_edge_protection = _clamp(float(moire_edge_protection), 0.0, 1.0)
     except (TypeError, ValueError):
-        moire_edge_protection = 0.72
+        moire_edge_protection = 0.84
     if moire_strength <= 0:
         return gray
 
     if resize_safe == "Strong":
-        base_strength = 0.48
-        base_blur = 0.62
-        base_edge_threshold = 20
+        base_strength = 0.34
+        base_blur = 0.50
     elif resize_safe == "Balanced":
-        base_strength = 0.36
-        base_blur = 0.46
-        base_edge_threshold = 17
-    else:
         base_strength = 0.26
-        base_blur = 0.34
-        base_edge_threshold = 14
+        base_blur = 0.38
+    else:
+        base_strength = 0.18
+        base_blur = 0.28
 
-    edge_threshold = int(_lerp(base_edge_threshold + 10, base_edge_threshold, moire_edge_protection))
-    blend_strength = _clamp(base_strength * _lerp(0.45, 1.65, moire_strength), 0.0, 0.72)
-    blur_radius = _clamp(base_blur * _lerp(0.55, 1.75, moire_strength), 0.15, 1.20)
+    blend_strength = _clamp(base_strength * _lerp(0.50, 1.45, moire_strength), 0.0, 0.48)
+    blur_radius = _clamp(base_blur * _lerp(0.55, 1.55, moire_strength), 0.12, 0.92)
 
     tone_ranges = {
         "Mid gray only": (72, 190),
@@ -205,14 +246,15 @@ def _apply_resize_safe(
     }
     tone_low, tone_high = tone_ranges.get(moire_tone_range, (42, 232))
 
-    edges = gray.filter(ImageFilter.FIND_EDGES)
-    low_edge_mask = edges.point(lambda x: 255 if x < edge_threshold else 0)
-    midtone_mask = gray.point(lambda x: 255 if tone_low <= x <= tone_high else 0)
-    safe_mask = ImageChops.multiply(low_edge_mask, midtone_mask)
-    safe_mask = safe_mask.filter(ImageFilter.GaussianBlur(radius=_lerp(0.8, 1.5, moire_strength)))
+    smoothed = gray.filter(ImageFilter.GaussianBlur(radius=blur_radius))
+    edges = gray.filter(ImageFilter.FIND_EDGES).filter(ImageFilter.GaussianBlur(radius=0.65))
+    edge_safe_mask = _soft_edge_safe_mask(edges, moire_edge_protection)
+    tone_mask = _soft_range_mask(gray, tone_low, tone_high, _lerp(18.0, 34.0, moire_strength))
+    change_mask = _low_change_mask(gray, smoothed, moire_strength)
+    safe_mask = ImageChops.multiply(edge_safe_mask, tone_mask)
+    safe_mask = ImageChops.multiply(safe_mask, change_mask)
+    safe_mask = safe_mask.filter(ImageFilter.GaussianBlur(radius=_lerp(1.2, 2.2, moire_strength)))
 
-    smoothed = gray.filter(ImageFilter.MedianFilter(size=3))
-    smoothed = smoothed.filter(ImageFilter.GaussianBlur(radius=blur_radius))
     blended = Image.blend(gray, smoothed, blend_strength)
     return Image.composite(blended, gray, safe_mask)
 
@@ -287,8 +329,8 @@ def normalize_monochrome(
     grid_tone_balance=True,
     tone_unify_strength=0.62,
     resize_safe="Light",
-    moire_strength=0.35,
-    moire_edge_protection=0.72,
+    moire_strength=0.25,
+    moire_edge_protection=0.84,
     moire_tone_range="Mid gray + light gray",
 ):
     source = image.convert("RGB")
@@ -454,9 +496,9 @@ class Script(scripts.Script):
                 choices=["Off", "Light", "Balanced", "Strong"],
                 value="Light",
             )
-            gr.Markdown("MoireGuard lightly smooths low-detail gray areas to reduce moire risk after scaling or rotation. Higher Edge Protection keeps line art safer.")
-            moire_strength = gr.Slider(label="MoireGuard Strength (smoothing amount)", minimum=0.0, maximum=1.0, step=0.01, value=0.35)
-            moire_edge_protection = gr.Slider(label="Edge Protection (protect line art)", minimum=0.0, maximum=1.0, step=0.01, value=0.72)
+            gr.Markdown("MoireGuard softly smooths only low-change gray areas to reduce moire risk after scaling or rotation. Higher Edge Protection also protects shadow boundaries.")
+            moire_strength = gr.Slider(label="MoireGuard Strength (smoothing amount)", minimum=0.0, maximum=1.0, step=0.01, value=0.25)
+            moire_edge_protection = gr.Slider(label="Edge Protection (protect line art and shadow edges)", minimum=0.0, maximum=1.0, step=0.01, value=0.84)
             moire_tone_range = gr.Dropdown(
                 label="Tone Range (gray range to smooth)",
                 choices=["Mid gray only", "Mid gray + light gray", "Wide gray"],
@@ -505,8 +547,8 @@ class Script(scripts.Script):
         grid_tone_balance,
         tone_unify_strength,
         resize_safe,
-        moire_strength=0.35,
-        moire_edge_protection=0.72,
+        moire_strength=0.25,
+        moire_edge_protection=0.84,
         moire_tone_range="Mid gray + light gray",
     ):
         if not enabled or not getattr(processed, "images", None):
