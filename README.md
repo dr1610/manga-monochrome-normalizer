@@ -1,8 +1,8 @@
-# Manga Monochrome Normalizer
+# MoireGuard
 
 AlwaysVisible extension for Stable Diffusion WebUI reForge / reForge Neo.
 
-This extension applies post-generation monochrome tone normalization for manga-style images. It does not change the diffusion process, prompts, ControlNet, ADetailer, or other generation extensions.
+MoireGuard applies post-generation monochrome tone normalization and lightweight resize-safe smoothing for manga-style images. It does not change the diffusion process, prompts, ControlNet, ADetailer, or other generation extensions.
 
 ## Features
 
@@ -21,6 +21,8 @@ Clone or copy this repository into your WebUI `extensions` folder:
 ```text
 stable-diffusion-webui/extensions/manga-monochrome-normalizer
 ```
+
+The repository folder can be left as `manga-monochrome-normalizer`; the extension appears in WebUI as `MoireGuard`.
 
 For Stability Matrix reForge packages, the target is typically:
 

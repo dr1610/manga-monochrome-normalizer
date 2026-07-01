@@ -373,13 +373,13 @@ def _set_processed_gallery(processed, gallery_images, gallery_infotexts):
 
 class Script(scripts.Script):
     def title(self):
-        return "Manga Monochrome Normalizer"
+        return "MoireGuard"
 
     def show(self, is_img2img):
         return scripts.AlwaysVisible
 
     def ui(self, is_img2img):
-        with gr.Accordion("Manga Monochrome Normalizer", open=False):
+        with gr.Accordion("MoireGuard", open=False):
             enabled = gr.Checkbox(label="Enable (補正を有効化)", value=False)
             save_behavior = gr.Dropdown(
                 label="Save behavior (保存とギャラリー表示)",
@@ -485,7 +485,7 @@ class Script(scripts.Script):
                     resize_safe=resize_safe,
                 )
                 corrected_images.append(corrected)
-                corrected_infotexts.append((original_infotexts[index] or "") + "\nManga Monochrome Normalizer: corrected")
+                corrected_infotexts.append((original_infotexts[index] or "") + "\nMoireGuard: corrected")
 
             if tone_unify:
                 corrected_images = _balance_batch_images(corrected_images, tone_unify_strength)
@@ -509,6 +509,6 @@ class Script(scripts.Script):
             elif save_behavior == SAVE_CORRECTED_COPY:
                 _set_processed_gallery(processed, original_images, original_infotexts)
         except Exception:
-            print("Manga Monochrome Normalizer postprocess failed:")
+            print("MoireGuard postprocess failed:")
             print(traceback.format_exc())
             return
